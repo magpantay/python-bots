@@ -53,8 +53,17 @@ def print_and_send_post(username, bot, subreddit, submission, found_keyword, hws
             message_content = "Title: {0}\n\nURL: {1}\n\nTime: {2}\n\n".format(submission.title,submission.url,convert_epoch_to_date(submission.created))	
             bot.redditor(username).message(subject_content, message_content)
 
-def check_locality(locality_country, locality_state, submission_title):
-    return ((submission_title.lower().find("local") != -1 and submission_title.lower().find("paypal") == -1) and (submission_title.find(locality_country+"-"+locality_state) != -1 or submission_title.find(locality_country+" - "+locality_state) != -1)) or (submission_title.lower().find("paypal") != -1 and submission_title.find(locality_country))
+def check_locality(submission_title, locality_country, locality_state = 'None'):
+    if locality_country == 'None':
+        print "No country specified.\nNo postings will be returned, please quit the program and enter your country.\n"
+        return 0
+    elif locality_state == 'None' and locality_country != 'None':
+        return ((submission_title.lower().find("local") != -1 and submission_title.lower().find("paypal") == -1) and (submission_title.find(locality_country) != -1 or submission_title.find(locality_country) != -1)) or (submission_title.lower().find("paypal") != -1 and submission_title.find(locality_country))
+    elif locality_state == 'None' and locality_country == 'USA':
+        print "USA Locality Detected.\nNo postings will be returned, please quit the program and enter your state.\n"
+        return 0
+    else:
+        return ((submission_title.lower().find("local") != -1 and submission_title.lower().find("paypal") == -1) and (submission_title.find(locality_country+"-"+locality_state) != -1 or submission_title.find(locality_country+" - "+locality_state) != -1)) or (submission_title.lower().find("paypal") != -1 and submission_title.find(locality_country))
     #finds "Local", doesn't find "Paypal", but in locality --OR-- it just finds "paypal" and is within country	   
 
 def flair_check(submission, hws_yes):
@@ -63,11 +72,14 @@ def flair_check(submission, hws_yes):
     else:
         return submission.link_flair_text != "Out of Stock" or submission.link_flair_text != "Expired"
 
+def ignore_alert(submission_title, reason):
+    print "##########\n[IGNORED]\nTitle: {0}\nReason:{1}\n##########\n".format(submission_title, reason)
+
 ###################
 
 print "Location of Praw: {0}\n".format(praw.__path__)
 
-is_hws = 1 #a switch whether this is the hws_bot or the bapcs_bot
+is_hws = 0 #a switch whether this is the hws_bot or the bapcs_bot
 if is_hws:
     bot = praw.Reddit(password='[]',username='[]', client_secret='[]', client_id='[]', user_agent='HWS/BAPCS Bot v2.0 [Mode: HWS]')
 else:
@@ -82,28 +94,31 @@ keywordsHWS = ['ddr4', 'ssd']
 antikeywordsHWS = ['HTPC'] # may have the keywords above, but if there are any antikeywords in the title, then just ignore it despite the keyword match
 
 keywordsBAPCS = ['ddr4', 'ssd']
-antikeywordsBAPCS = ['built', 'laptop', 'build']
+antikeywordsBAPCS = ['built', 'laptop', 'build', 'mobo', 'motherboard', 'dell', 'acer', 'alienware', 'lenovo']
 
 for submission in subreddit.stream.submissions():
     ignore_post = 0
     if flair_check(submission, is_hws): 
 	if is_hws: #because checking locality is an hws_bot specific thing
-            if check_locality('USA', 'CA', submission.title) != 1: #if the locality check fails
+            if check_locality(submission.title, 'USA', 'CA') != 1: #if the locality check fails
+                ignore_alert(submission.title, "Not within locality parameters")
                 continue #ignore this one
             for i in range(len(keywordsHWS)):
                 if submission.title.lower().find(keywordsHWS[i]) != -1:
                     for j in range(len(antikeywordsHWS)):
                         if submission.title.lower().find(antikeywordsHWS[j]) != -1:
                             ignore_post = 1
+                            ignore_alert(submission.title, "Detected anti-keyword")
                             break #we only need one ignore
                     if ignore_post != 1:
-                        print_and_send_post('[]', bot, subreddit, submission, keywordsHWS[i], is_hws)
+                        print_and_send_post('notgovernmentspy', bot, subreddit, submission, keywordsHWS[i], is_hws)
                         break #just in case someone is selling both keywords in the same posting (don't want duplicate messages)
         else:
             for i in range(len(keywordsBAPCS)):
                 if submission.title.lower().find(keywordsBAPCS[i]) != -1:
                     for j in range(len(antikeywordsBAPCS)):
                         if submission.title.lower().find(antikeywordsBAPCS[j]) != -1:
+                            ignore_alert(submission.title, "Detected anti-keyword")
                             ignore_post = 1
                             break #we only need one ignore
                     if ignore_post != 1:
