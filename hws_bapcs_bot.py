@@ -111,7 +111,7 @@ for submission in subreddit.stream.submissions():
                             ignore_alert(submission.title, "Detected anti-keyword")
                             break #we only need one ignore
                     if ignore_post != 1:
-                        print_and_send_post('notgovernmentspy', bot, subreddit, submission, keywordsHWS[i], is_hws)
+                        print_and_send_post('[]', bot, subreddit, submission, keywordsHWS[i], is_hws)
                         break #just in case someone is selling both keywords in the same posting (don't want duplicate messages)
         else:
             for i in range(len(keywordsBAPCS)):
