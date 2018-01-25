@@ -1,2 +1,2 @@
-# reddit-bots
-Some Reddit bots I made in Python using praw
+# python-bots
+Some bots (mainly focused on Reddit-based bots) that I wrote in Python
