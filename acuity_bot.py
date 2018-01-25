@@ -1,6 +1,20 @@
 import sys
 import time
 import requests
+import datetime
+
+def checkTime():		# know I can use pytz, but would much rather not need/force someone to install pytz
+	time0 = datetime.datetime.utcnow()	# just get a universal time and manipulate that (so it's the same all around)
+
+	# the following is used to convert from UTC to PST -8 (I guess the [slightly] longer way), taken from my hws_bapcs_bot
+
+	hour_sub_factor = 8
+
+	if time0.hour-hour_sub_factor < 0:
+		hour_sub_factor = 8-24
+	if (time0.hour-hour_sub_factor <= 22 and time0.minute == 0) and (time0.hour-hour_sub_factor >= 13 and time0.minute >= 30):			# will only query stuff from 1:30PM to 10:00PM PST
+		return 1
+	return 0
 
 def print0(text, times, isBeeping = 0):
 	print text,
@@ -37,12 +51,16 @@ params = (
 string0 = set()			#prevents duplicates of the same request
 first_time_running = 1			#acts slightly differently on first run-through
 
+if checkTime() != 1:
+	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# checkTime placed here before the entire thing runs as a check
+	sys.exit()	
+
 numberoftimes = raw_input("Times to play beep (default: 5): ")
 if numberoftimes == "":
 	numberoftimes = "5"			#default is 5
 numberoftimes = int(numberoftimes)
 
-while 1:
+while 1 and checkTime():	# checkTime placed here in the case it's left running
 	something_new = 0
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=('[]', '[]'))
 	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
@@ -88,6 +106,7 @@ while 1:
 	
 	print0("Sleeping", 5)
 
+print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			#originally had it from 2:30PM to 10:00PM PST, but datetime doesn't handle DST/PDT, so just added an hour in ranges so that in PDT, it'll only work from 2:30PM - 11:00PM
+
 #to-do: account for array shrinkages in the case someone cancels an appointment
-#to-do: be able to parse metadata for if there's more than one appointment
 #curl -u []:[] "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=646552"
