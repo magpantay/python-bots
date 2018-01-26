@@ -47,29 +47,30 @@ def parse_data(current_result):
 
 string0 = set()			#prevents duplicates of the same request
 first_time_running = 1			#acts slightly differently on first run-through
-
-if checkTime() != 1:
-	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# checkTime placed here before the entire thing runs as a check
-	sys.exit()	
-
-numberoftimes = raw_input("Times to play beep (default: 5): ")
-if numberoftimes == "":
-	numberoftimes = "5"			#default is 5
-numberoftimes = int(numberoftimes)
+numTimes_already_set = 0
 
 # the following gathers information from a user-supplied INI file
 config_file_contents = open("acuitybotconfig.ini").read()
 
 # first remove the preceding part and first single quotation mark
-userID = config_file_contents.split("userID='")[1]
-calendarID = config_file_contents.split("calendarID='")[1]
-keyAPI = config_file_contents.split("keyAPI='")[1]		# the 0th index gets the stuff preceding the split
-								# meanwhile, the 1st index gets stuff after split
+userID = config_file_contents.split("userID='")[1]		# the 0th index gets the stuff preceding the split
+calendarID = config_file_contents.split("calendarID='")[1]	# meanwhile, the 1st index gets stuff after split
+keyAPI = config_file_contents.split("keyAPI='")[1]		 
+
+if config_file_contents.find("numberOfTimes='") != -1:
+	numberOfTimes = config_file_contents.split("numberOfTimes='")[1]
+	numTimes_already_set = 1
+
 # then remove the quotation mark on the other end
 userID = userID.split("'")[0]
 calendarID = calendarID.split("'")[0]
 keyAPI = keyAPI.split("'")[0]
 
+if numTimes_already_set == 1:
+	numberOfTimes = numberOfTimes.split("'")[0]
+	numberOfTimes = int(numberOfTimes)
+
+# now that we're done with that, onto the rest of the program
 
 params = (
     ('minDate', 'TODAY'),
@@ -77,7 +78,17 @@ params = (
     ('calendarID', calendarID),
 )
 
-while 1 and checkTime():	# checkTime placed here in the case it's left running
+if checkTime(1) != 1:
+	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# checkTime placed here before the entire thing runs as a check
+	sys.exit()	
+
+if numTimes_already_set != 1:
+	numberOfTimes = raw_input("Times to play beep (default: 5): ")
+	if numberOfTimes == "":
+		numberOfTimes = "5"			#default is 5
+	numberOfTimes = int(numberOfTimes)
+
+while 1 and checkTime(1):	# checkTime placed here in the case it's left running
 	something_new = 0
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
