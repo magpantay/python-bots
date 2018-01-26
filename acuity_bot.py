@@ -3,18 +3,21 @@ import time
 import requests
 import datetime
 
-def checkTime():		# know I can use pytz, but would much rather not need/force someone to install pytz
-	time0 = datetime.datetime.utcnow()	# just get a universal time and manipulate that (so it's the same all around)
+def checkTime(override = 0):
+	if override == 1:
+		return override
+	else:		# know I can use pytz, but would much rather not need/force someone to install pytz
+		time0 = datetime.datetime.utcnow()	# just get a universal time and manipulate that (so it's the same all around)
 
-	# the following is used to convert from UTC to PST -8 (I guess the [slightly] longer way), taken from my hws_bapcs_bot
+		# the following is used to convert from UTC to PST -8 (I guess the [slightly] longer way), taken from my hws_bapcs_bot
 
-	hour_sub_factor = 8
+		hour_sub_factor = 8
 
-	if time0.hour-hour_sub_factor < 0:
-		hour_sub_factor = 8-24
-	if (time0.hour-hour_sub_factor <= 22 and time0.minute == 0) and (time0.hour-hour_sub_factor >= 13 and time0.minute >= 30):			# will only query stuff from 1:30PM to 10:00PM PST
-		return 1
-	return 0
+		if time0.hour-hour_sub_factor < 0:
+			hour_sub_factor = 8-24
+		if (time0.hour-hour_sub_factor <= 22 and time0.minute == 0) and (time0.hour-hour_sub_factor >= 13 and time0.minute >= 30):			# will only query stuff from 1:30PM to 10:00PM PST
+			return 1
+		return 0
 
 def print0(text, times, isBeeping = 0):
 	print text,
@@ -42,12 +45,6 @@ def parse_data(current_result):
 	return parsed_data
 ####################################################################################################
 
-params = (
-    ('minDate', 'TODAY'),
-    ('maxDate', 'TODAY'),
-    ('calendarID', '646552'),
-)
-
 string0 = set()			#prevents duplicates of the same request
 first_time_running = 1			#acts slightly differently on first run-through
 
@@ -60,9 +57,29 @@ if numberoftimes == "":
 	numberoftimes = "5"			#default is 5
 numberoftimes = int(numberoftimes)
 
+# the following gathers information from a user-supplied INI file
+config_file_contents = open("acuitybotconfig.ini").read()
+
+# first remove the preceding part and first single quotation mark
+userID = config_file_contents.split("userID='")[1]
+calendarID = config_file_contents.split("calendarID='")[1]
+keyAPI = config_file_contents.split("keyAPI='")[1]		# the 0th index gets the stuff preceding the split
+								# meanwhile, the 1st index gets stuff after split
+# then remove the quotation mark on the other end
+userID = userID.split("'")[0]
+calendarID = calendarID.split("'")[0]
+keyAPI = keyAPI.split("'")[0]
+
+
+params = (
+    ('minDate', 'TODAY'),
+    ('maxDate', 'TODAY'),
+    ('calendarID', calendarID),
+)
+
 while 1 and checkTime():	# checkTime placed here in the case it's left running
 	something_new = 0
-	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=('[]', '[]'))
+	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
 	
 	string0_size_old = len(string0)
@@ -109,4 +126,4 @@ while 1 and checkTime():	# checkTime placed here in the case it's left running
 print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			#originally had it from 2:30PM to 10:00PM PST, but datetime doesn't handle DST/PDT, so just added an hour in ranges so that in PDT, it'll only work from 2:30PM - 11:00PM
 
 #to-do: account for array shrinkages in the case someone cancels an appointment
-#curl -u []:[] "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=646552"
+#curl -u userID:keyAPI "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=646552"
