@@ -78,7 +78,7 @@ params = (
     ('calendarID', calendarID),
 )
 
-if checkTime(1) != 1:
+if checkTime() != 1:
 	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# checkTime placed here before the entire thing runs as a check
 	sys.exit()	
 
@@ -88,7 +88,7 @@ if numTimes_already_set != 1:
 		numberOfTimes = "5"			#default is 5
 	numberOfTimes = int(numberOfTimes)
 
-while 1 and checkTime(1):	# checkTime placed here in the case it's left running
+while 1 and checkTime():	# checkTime placed here in the case it's left running
 	something_new = 0
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
