@@ -50,7 +50,9 @@ first_time_running = 1			#acts slightly differently on first run-through
 numTimes_already_set = 0
 
 # the following gathers information from a user-supplied INI file
-config_file_contents = open("acuitybotconfig.ini").read()
+config_file = open("acuitybotconfig.ini")
+config_file_contents = config_file.read()
+config_file.close()
 
 # first remove the preceding part and first single quotation mark
 userID = config_file_contents.split("userID='")[1]		# the 0th index gets the stuff preceding the split
