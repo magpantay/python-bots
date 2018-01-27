@@ -37,15 +37,18 @@ def print0(text, times, isBeeping = 0):
 #### 	If anyone wants to get this working before I figure out how to do it, be my guest 	####
 def parse_data(current_result):
 	firstNameBeginIndex = current_result.find("firstName")
-	dateCreatedBeginIndex = current_result.find("\",\"dateCreated")		
+	dateCreatedBeginIndex = current_result.find("\",\"dateCreated")
 
 	parsed_data = current_result[firstNameBeginIndex:dateCreatedBeginIndex-len(current_result)] #creates substring, starts at firstNameBeginIndex, gets (negative number) dateCreated minus length of entire thing
 	parsed_data = parsed_data.replace(",", "\n").replace("\"", "")
-	
+
 	return parsed_data
 ####################################################################################################
 
-string0 = set()			#prevents duplicates of the same request
+if checkTime(1) != 1:
+	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# before all else
+	sys.exit()
+
 first_time_running = 1			#acts slightly differently on first run-through
 numTimes_already_set = 0
 
@@ -57,18 +60,20 @@ config_file.close()
 # first remove the preceding part and first single quotation mark
 userID = config_file_contents.split("userID='")[1]		# the 0th index gets the stuff preceding the split
 calendarID = config_file_contents.split("calendarID='")[1]	# meanwhile, the 1st index gets stuff after split
-keyAPI = config_file_contents.split("keyAPI='")[1]		 
+keyAPI = config_file_contents.split("keyAPI='")[1]
 
 if config_file_contents.find("numberOfTimes='") != -1:
 	numberOfTimes = config_file_contents.split("numberOfTimes='")[1]
 	numTimes_already_set = 1
+
+del config_file_contents	# no need for it anymore, just taking up space
 
 # then remove the quotation mark on the other end
 userID = userID.split("'")[0]
 calendarID = calendarID.split("'")[0]
 keyAPI = keyAPI.split("'")[0]
 
-if numTimes_already_set == 1:
+if numTimes_already_set:
 	numberOfTimes = numberOfTimes.split("'")[0]
 	numberOfTimes = int(numberOfTimes)
 
@@ -80,63 +85,69 @@ params = (
     ('calendarID', calendarID),
 )
 
-if checkTime() != 1:
-	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# checkTime placed here before the entire thing runs as a check
-	sys.exit()	
-
 if numTimes_already_set != 1:
 	numberOfTimes = raw_input("Times to play beep (default: 5): ")
 	if numberOfTimes == "":
 		numberOfTimes = "5"			#default is 5
 	numberOfTimes = int(numberOfTimes)
 
-while 1 and checkTime():	# checkTime placed here in the case it's left running
+size_old = 0
+
+while 1 and checkTime(1):	# checkTime placed here in the case it's left running
 	something_new = 0
+	appt_cancelled = 0
+
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
-	
-	string0_size_old = len(string0)
-	string0.add(current_result)
-	
-	if len(string0) > string0_size_old:
+
+	if size_old < len(current_result) and not first_time_running: # something_new doesn't trip on first iterance
 		something_new = 1
 
+	if size_old > len(current_result) and not first_time_running:
+		appt_cancelled = 1
 	#new_file = open("acuity_appointments_metadata.txt", "w+")
 	#new_file.write(current_result)			#Notepad is a dumb and won't display the new file correctly, use another text editor that isn't trash
 
-	if first_time_running == 0:
+	if not first_time_running:
 		print0("Running", 3)
 
-		if something_new == 1:
+		if something_new:
 			time.sleep(1)
 			print "\nThere's a new appointment."
 			time.sleep(0.5)
-			print0("Playing beep", numberoftimes, 1)
+			print0("Playing beep", numberOfTimes, 1)
 			time.sleep(0.3)
 			print "\n=================\n"
-
+		elif appt_cancelled:	# need to account for whether an appointment has been cancelled (but it only plays half the amount of specified beeps)
+			time.sleep(1)
+			print "\nSomeone cancelled their appointment."
+			time.sleep(0.5)
+			print0("Playing beep", numberOfTimes/2, 1)
+			time.sleep(0.3)
+			print "\n================\n"
 		else:
 			time.sleep(1)
 			print "\nNothing new."
 			time.sleep(0.3)
 			print "\n=================\n"
-	
+
 	else:
 		print "==============================================================METADATA=============================================================="
 		print "----------------------------------------------------------------------"
 		print current_result
 		print "----------------------------------------------------------------------"
 		print "============================================================END METADATA============================================================\n"
-		
+
 		#print parse_data(current_result)
 		#print ""
 
 		first_time_running = 0
 		print "First time running, will sleep for 5 seconds and check again.\n"
-	
+
 	print0("Sleeping", 5)
+	size_old = len(current_result)
 
 print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			#originally had it from 2:30PM to 10:00PM PST, but datetime doesn't handle DST/PDT, so just added an hour in ranges so that in PDT, it'll only work from 2:30PM - 11:00PM
 
 #to-do: account for array shrinkages in the case someone cancels an appointment
-#curl -u userID:keyAPI "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=646552"
+#curl -u userID:keyAPI "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=calendarID"
