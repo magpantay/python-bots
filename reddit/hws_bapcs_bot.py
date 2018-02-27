@@ -3,7 +3,7 @@ import time
 import datetime
 import sys
 
-ishws = 0 # a switch whether this is the hws_bot or the bapcs_bot
+is_hws = 0 # a switch whether this is the hws_bot or the bapcs_bot
 
 def convert_epoch_to_date(sub_time):
 	time0 = datetime.datetime.fromtimestamp(sub_time)
