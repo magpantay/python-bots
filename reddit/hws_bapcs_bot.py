@@ -3,6 +3,8 @@ import time
 import datetime
 import sys
 
+ishws = 0 # a switch whether this is the hws_bot or the bapcs_bot
+
 def convert_epoch_to_date(sub_time):
 	time0 = datetime.datetime.fromtimestamp(sub_time)
 
@@ -80,8 +82,6 @@ def ignore_alert(submission_title, reason):
 ########################
 
 print "Location of Praw: {0}\n".format(praw.__path__)
-
-is_hws = 0 # a switch whether this is the hws_bot or the bapcs_bot
 
 if is_hws:
     bot = praw.Reddit(user_agent='HWS/BAPCS Bot v2.0 [Mode: HWS]', site_name='hws_bot')
