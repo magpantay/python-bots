@@ -2,7 +2,7 @@
 Some bots (mainly focused on Reddit-based bots) that I wrote in Python.
 
 ## List of bots:
-- Acuity Bot
+- [Acuity](https://secure.acuityscheduling.com) Bot
 - [r/hardwareswap](https://www.reddit.com/r/hardwareswap) bot
 - [r/buildapcsales](https://www.reddit.com/r/buildapcsales) bot
 
