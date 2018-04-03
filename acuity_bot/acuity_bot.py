@@ -2,7 +2,17 @@ import sys
 import time
 import requests
 import datetime
-
+# The following enables the beep sound for linux
+if sys.platform == "linux" or sys.platform == "linux2":
+	import os
+	# Beep drivers are removed by default in some linux distros (eg. Ubuntu)
+	# To temporarily enable for current session, (until reboot)
+	os.system("sudo modprobe pcspkr")
+	os.system("xset b 100") # Perhaps not necissary, mine was set to 40.
+	os.system("pactl upload-sample /usr/share/sounds/ubuntu/notifications/Mallet.ogg bell.ogg") # default bing sound. You may choose another (see to-do)
+	# now to make beep, simply run:
+	# os.system("printf \a")
+	
 def checkTime(override = 0):
 	if override == 1:
 		return override
@@ -27,8 +37,11 @@ def print0(text, times, isBeeping = 0):
 		sys.stdout.write('.')
 		sys.stdout.flush()
 		if isBeeping == 1:
-			sys.stdout.write("\a")
-			sys.stdout.flush()
+			if sys.platform == "linux" or sys.platform == "linux2": # beep on linux
+				os.system("printf \a")
+			else: 													# beep on windows
+				sys.stdout.write("\a")
+				sys.stdout.flush()
 			time.sleep(1.25)
 	print "done."
 
