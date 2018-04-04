@@ -20,11 +20,11 @@ def convert_epoch_to_date(sub_time):
 		hour_sub_factor = 8-24
 		if time0.day-day_sub_factor < 1:
 			month_sub_factor = 1
-			if month == 2 and year % 4 != 0:
+			if time0.month == 2 and time0.year % 4 != 0:
 				day_sub_factor = 1-28
-			elif month == 2 and year % 4 == 0:
+			elif time0.month == 2 and time0.year % 4 == 0:
 				day_sub_factor = 1-29
-			elif month != 1 or month != 3 or month != 5 or month != 7 or month != 8 or month != 10 or month != 12:
+			elif time0.month != 1 or time0.month != 3 or time0.month != 5 or time0.month != 7 or time0.month != 8 or time0.month != 10 or time0.month != 12:
 				day_sub_factor = 1-30
 			else:
 				day_sub_factor = 1-31
