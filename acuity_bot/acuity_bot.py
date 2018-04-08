@@ -1,7 +1,7 @@
 import sys
 import time
 import requests
-import datetime
+
 # The following enables the beep sound for linux
 if sys.platform == "linux" or sys.platform == "linux2":
 	import os
@@ -12,22 +12,6 @@ if sys.platform == "linux" or sys.platform == "linux2":
 	os.system("pactl upload-sample /usr/share/sounds/ubuntu/notifications/Mallet.ogg bell.ogg") # default bing sound. You may choose another (see to-do)
 	# now to make beep, simply run:
 	# os.system("printf \a")
-	
-def checkTime(override = 0):
-	if override == 1:
-		return override
-	else:		# know I can use pytz, but would much rather not need/force someone to install pytz
-		time0 = datetime.datetime.utcnow()	# just get a universal time and manipulate that (so it's the same all around)
-
-		# the following is used to convert from UTC to PST -8 (I guess the [slightly] longer way), taken from my hws_bapcs_bot
-
-		hour_sub_factor = 8
-
-		if time0.hour-hour_sub_factor < 0:
-			hour_sub_factor = 8-24
-		if (time0.hour-hour_sub_factor <= 22 and time0.minute == 0) and (time0.hour-hour_sub_factor >= 13 and time0.minute >= 30):			# will only query stuff from 1:30PM to 10:00PM PST
-			return 1
-		return 0
 
 def print0(text, times, isBeeping = 0):
 	print text,
@@ -57,10 +41,6 @@ def parse_data(current_result):
 
 	return parsed_data
 ####################################################################################################
-
-if checkTime(1) != 1:
-	print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			# before all else
-	sys.exit()
 
 first_time_running = 1			#acts slightly differently on first run-through
 numTimes_already_set = 0
@@ -106,20 +86,18 @@ if numTimes_already_set != 1:
 
 size_old = 0
 
-while 1 and checkTime(1):	# checkTime placed here in the case it's left running
+while 1:
 	something_new = 0
 	appt_cancelled = 0
 
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
-	current_result = response.text.replace("\\n", "\n").replace("\\","")			#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
+	current_result = response.text	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
 
 	if size_old < len(current_result) and not first_time_running: # something_new doesn't trip on first iterance
 		something_new = 1
 
 	if size_old > len(current_result) and not first_time_running:
 		appt_cancelled = 1
-	#new_file = open("acuity_appointments_metadata.txt", "w+")
-	#new_file.write(current_result)			#Notepad is a dumb and won't display the new file correctly, use another text editor that isn't trash
 
 	if not first_time_running:
 		print0("Running", 3)
@@ -151,16 +129,8 @@ while 1 and checkTime(1):	# checkTime placed here in the case it's left running
 		print "----------------------------------------------------------------------"
 		print "============================================================END METADATA============================================================\n"
 
-		#print parse_data(current_result)
-		#print ""
-
 		first_time_running = 0
 		print "First time running, will sleep for 5 seconds and check again.\n"
 
 	print0("Sleeping", 5)
 	size_old = len(current_result)
-
-print "Location is closed, program will only be functional from 1:30PM - 10:00PM PST"			#originally had it from 2:30PM to 10:00PM PST, but datetime doesn't handle DST/PDT, so just added an hour in ranges so that in PDT, it'll only work from 2:30PM - 11:00PM
-
-#to-do: account for array shrinkages in the case someone cancels an appointment
-#curl -u userID:keyAPI "https://acuityscheduling.com/api/v1/appointments?minDate=TODAY&maxDate=TODAY&calendarID=calendarID"
