@@ -1,6 +1,7 @@
 import sys
 import time
 import requests
+import json
 
 # The following enables the beep sound for linux
 if sys.platform == "linux" or sys.platform == "linux2":
@@ -29,18 +30,27 @@ def print0(text, times, isBeeping = 0):
 			time.sleep(1.25)
 	print "done."
 
-####################################################################################################
-#### 	The following function is a "beta" feature that isn't quite fully working 		####
-#### 	If anyone wants to get this working before I figure out how to do it, be my guest 	####
-def parse_data(current_result):
-	firstNameBeginIndex = current_result.find("firstName")
-	dateCreatedBeginIndex = current_result.find("\",\"dateCreated")
+def printJSON(parsed_json_result):
+	count = 1
+	print "============================================================BEGIN=============================================================\n"
+	for each_result in parsed_json_result:
+		print "--------------"
+		print "CLIENT #{0}: ".format(count)
+		print "Name: {0} {1}".format(each_result['firstName'], each_result['lastName'])
+		print "Phone: {0}".format(each_result['phone'])
+		print "Email: {0}".format(each_result['email'])
+		print "Appointment Time: {0}-{1}".format(each_result['time'], each_result['endTime'])
+		print "Type of Service: {0}".format(each_result['forms'][0]['name'])
 
-	parsed_data = current_result[firstNameBeginIndex:dateCreatedBeginIndex-len(current_result)] #creates substring, starts at firstNameBeginIndex, gets (negative number) dateCreated minus length of entire thing
-	parsed_data = parsed_data.replace(",", "\n").replace("\"", "")
+		if each_result['forms'][0]['name'] == "Dorm Run Request":
+			print "Dorm Location: {0} {1}".format(each_result['forms'][0]['values'][2]['value'], each_result['forms'][0]['values'][3]['value'])
+			print "What's Broken in the Dorm: {0}".format(each_result['forms'][0]['values'][0]['value'])
+			print "Problem Elaboration by User: {0}".format(each_result['forms'][0]['values'][1]['value'])
 
-	return parsed_data
-####################################################################################################
+		print "Work Order/Reference Number: {0}".format(each_result['forms'][1]['values'][0]['value'])
+		print "--------------"
+		count+=1
+	print "\n=============================================================END==============================================================\n"
 
 first_time_running = 1			#acts slightly differently on first run-through
 numTimes_already_set = 0
@@ -92,12 +102,15 @@ while 1:
 
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 	current_result = response.text	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
+	parsed_json_result = json.loads(current_result) # type dictionary
 
 	if size_old < len(current_result) and not first_time_running: # something_new doesn't trip on first iterance
 		something_new = 1
+		printJSON(parsed_json_result)
 
 	if size_old > len(current_result) and not first_time_running:
 		appt_cancelled = 1
+		printJSON(parsed_json_result)
 
 	if not first_time_running:
 		print0("Running", 3)
@@ -123,11 +136,7 @@ while 1:
 			print "\n=================\n"
 
 	else:
-		print "==============================================================METADATA=============================================================="
-		print "----------------------------------------------------------------------"
-		print current_result
-		print "----------------------------------------------------------------------"
-		print "============================================================END METADATA============================================================\n"
+		printJSON(parsed_json_result)
 
 		first_time_running = 0
 		print "First time running, will sleep for 5 seconds and check again.\n"
