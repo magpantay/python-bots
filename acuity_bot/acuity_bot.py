@@ -106,11 +106,9 @@ while 1:
 
 	if size_old < len(current_result) and not first_time_running: # something_new doesn't trip on first iterance
 		something_new = 1
-		printJSON(parsed_json_result)
 
 	if size_old > len(current_result) and not first_time_running:
 		appt_cancelled = 1
-		printJSON(parsed_json_result)
 
 	if not first_time_running:
 		print0("Running", 3)
@@ -119,6 +117,7 @@ while 1:
 			time.sleep(1)
 			print "\nThere's a new appointment."
 			time.sleep(0.5)
+			printJSON(parsed_json_result)
 			print0("Playing beep", numberOfTimes, 1)
 			time.sleep(0.3)
 			print "\n=================\n"
@@ -126,6 +125,7 @@ while 1:
 			time.sleep(1)
 			print "\nSomeone cancelled their appointment."
 			time.sleep(0.5)
+			printJSON(parsed_json_result)
 			print0("Playing beep", numberOfTimes/2, 1)
 			time.sleep(0.3)
 			print "\n================\n"
@@ -137,7 +137,6 @@ while 1:
 
 	else:
 		printJSON(parsed_json_result)
-
 		first_time_running = 0
 		print "First time running, will sleep for 5 seconds and check again.\n"
 
