@@ -19,7 +19,7 @@ def print0(text, times, isBeeping = 0):
 	for i in range(times):
 		if isBeeping == 0:
 			time.sleep(1)
-		sys.stdout.write('.')
+		sys.stdout.write('') # keeps text - done inline
 		sys.stdout.flush()
 		if isBeeping == 1:
 			if sys.platform == "linux" or sys.platform == "linux2": # beep on linux
@@ -28,7 +28,7 @@ def print0(text, times, isBeeping = 0):
 				sys.stdout.write("\a")
 				sys.stdout.flush()
 			time.sleep(1.25)
-	print "done."
+	print " - done."
 
 def printJSON(parsed_json_result):
 	count = 1
@@ -94,43 +94,42 @@ if numTimes_already_set != 1:
 		numberOfTimes = "5"			#default is 5
 	numberOfTimes = int(numberOfTimes)
 
-size_old = 0
+old_len = 0 # used to keep track of amount of appointments
 
 while 1:
 	something_new = 0
 	appt_cancelled = 0
 
 	response = requests.get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
-	current_result = response.text	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.)
-	parsed_json_result = json.loads(current_result) # type dictionary
+	parsed_json_result = json.loads(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 
-	if size_old < len(current_result) and not first_time_running: # something_new doesn't trip on first iterance
+	if len(parsed_json_result) > old_len and not first_time_running: # something_new doesn't trip on first iterance
 		something_new = 1
 
-	if size_old > len(current_result) and not first_time_running:
+	if old_len > len(parsed_json_result) and not first_time_running:
 		appt_cancelled = 1
 
 	if not first_time_running:
-		print0("Running", 3)
+		print0("Running", 2)
 
 		if something_new:
-			time.sleep(1)
+			time.sleep(0.5)
 			print "\nThere's a new appointment."
 			time.sleep(0.5)
 			printJSON(parsed_json_result)
-			print0("Playing beep", numberOfTimes, 1)
+			print0("Playing beep {0} times".format(numberOfTimes), numberOfTimes, 1)
 			time.sleep(0.3)
 			print "\n=================\n"
 		elif appt_cancelled:	# need to account for whether an appointment has been cancelled (but it only plays half the amount of specified beeps)
-			time.sleep(1)
+			time.sleep(0.5)
 			print "\nSomeone cancelled their appointment."
 			time.sleep(0.5)
 			printJSON(parsed_json_result)
-			print0("Playing beep", numberOfTimes/2, 1)
+			print0("Playing beep {0} times".format(numberOfTimes/2), numberOfTimes/2, 1)
 			time.sleep(0.3)
 			print "\n================\n"
 		else:
-			time.sleep(1)
+			time.sleep(0.5)
 			print "\nNothing new."
 			time.sleep(0.3)
 			print "\n=================\n"
@@ -140,5 +139,5 @@ while 1:
 		first_time_running = 0
 		print "First time running, will sleep for 5 seconds and check again.\n"
 
-	print0("Sleeping", 5)
-	size_old = len(current_result)
+	print0("Sleeping for 5 seconds", 5) # this plus all the other delays means a refresh happens about every 5-10 seconds
+	old_len = len(parsed_json_result)
