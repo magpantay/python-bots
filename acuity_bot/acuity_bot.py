@@ -38,15 +38,20 @@ def printJSON(parsed_json_result):
 			print "{0}".format(each_result['forms'][0]['name'])
 			print "Location: {0} {1}".format(each_result['forms'][0]['values'][0]['value'], each_result['forms'][0]['values'][1]['value']) #location + rm/ste value
 
-		print ""
+		elif each_result['type'] == "Rufus (Campus) Tech Time" or each_result['type'] == "Rufus Tech - Housing":
+			print "User explanation of problem: {0}".format(each_result['forms'][0]['values'][0]['value']) #different notes location for Student Rufus Time location
+			print ""
 
-		#print "Appointment Notes: {0}".format(each_result['forms'][0]['values'][1]['value']) #//to-do
-		#if each_result['forms'][0]['name'] == "Dorm Run Request":
-		#	print "Dorm Location: {0} {1}".format(each_result['forms'][0]['values'][2]['value'], each_result['forms'][0]['values'][3]['value'])
-		#	print "What's Broken in the Dorm: {0}".format(each_result['forms'][0]['values'][0]['value'])
-		#	print "Problem Elaboration by User: {0}".format(each_result['forms'][0]['values'][1]['value'])
+		elif each_result['type'] == "Phone/Remote Support":
+			print "{0}".format(each_result['location']) #supposedly where the zoom link is
 
-		# the above is commented out because the location this was made for doesn't exist anymore
+		elif each_result['forms'][0]['name'] == "Dorm Run Request":
+			print "Dorm Location: {0} {1}".format(each_result['forms'][0]['values'][2]['value'], each_result['forms'][0]['values'][3]['value'])
+			print "What's Broken in the Dorm: {0}".format(each_result['forms'][0]['values'][0]['value'])
+			print "User explanation of problem: {0}".format(each_result['forms'][0]['values'][1]['value'])
+			print ""
+
+		print "Additional Appointment Notes: {0}".format(each_result['notes'])
 
 		print "--------------"
 		count+=1
@@ -160,3 +165,4 @@ def main():
 
 if __name__ == "__main__":
 	main()
+	# really, this is meant for calendars that AREN'T Checked-in Troubleshooting and Device Pickup
