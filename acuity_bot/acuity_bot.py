@@ -24,6 +24,8 @@ def printJSON(parsed_json_result):
 	count = 1 # used for the list numbering
 	print "============================================================BEGIN=============================================================\n"
 	for each_result in parsed_json_result:
+
+		# Normal general print-out #
 		print "--------------"
 		print "CLIENT #{0}: ".format(count)
 		print "Name: {0} {1}".format(each_result['firstName'], each_result['lastName'])
@@ -33,23 +35,29 @@ def printJSON(parsed_json_result):
 		print "Type of Service: {0}".format(each_result['type'])
 		print "Work Order/Reference Number: {0}".format(each_result['forms'][1]['values'][0]['value'])
 
+		# ---- Location-specific printouts ---- #
+		# On-Campus Travel Tech #
 		if each_result['forms'][0]['name'].find("Campus Location") != -1:
 			print ""
 			print "{0}".format(each_result['forms'][0]['name'])
 			print "Location: {0} {1}".format(each_result['forms'][0]['values'][0]['value'], each_result['forms'][0]['values'][1]['value']) #location + rm/ste value
 
+		# Bobcat Bar (COB132A)/Non-dorm-run dorm locations#
 		elif each_result['type'] == "Rufus (Campus) Tech Time" or each_result['type'] == "Rufus Tech - Housing":
 			print "User explanation of problem: {0}".format(each_result['forms'][0]['values'][0]['value']) #different notes location for Student Rufus Time location
 			print ""
 
+		# Remote Tech #
 		elif each_result['type'] == "Phone/Remote Support":
 			print "{0}".format(each_result['location']) #supposedly where the zoom link is
 
+		# GP/VT locations for dorm runs #
 		elif each_result['forms'][0]['name'] == "Dorm Run Request":
 			print "Dorm Location: {0} {1}".format(each_result['forms'][0]['values'][2]['value'], each_result['forms'][0]['values'][3]['value'])
 			print "What's Broken in the Dorm: {0}".format(each_result['forms'][0]['values'][0]['value'])
 			print "User explanation of problem: {0}".format(each_result['forms'][0]['values'][1]['value'])
 			print ""
+		# ---- End location-sepcific printouts ---- #
 
 		print "Additional Appointment Notes: {0}".format(each_result['notes'])
 
@@ -57,16 +65,12 @@ def printJSON(parsed_json_result):
 		count+=1
 	print "\n=============================================================END==============================================================\n"
 
-def printy(parsed_json_result):
-	print "============================================================BEGIN=============================================================\n"
-	for each_result in parsed_json_result:
-		print each_result
-	print "\n=============================================================END==============================================================\n"
-
 def main():
 	first_time_running = 1			#acts slightly differently on first run-through
-	numTimes_already_set = 0
+	numTimes_already_set = 0		#to set default value if not set in ini file
+	pullOnce = 0				#pulls all appointment information only once, doesn't do the automatic refresh thing
 
+	# ---- check OS (since some Linux distros has a different audio handling method) ---- #
 	print "OS Detected as {0} {1}".format(os_id()[0], os_id()[2])
 
 	# The following enables the beep sound for linux
@@ -79,7 +83,9 @@ def main():
 		system("pactl upload-sample /usr/share/sounds/ubuntu/notifications/Mallet.ogg bell.ogg") # default bing sound. You may choose another (see to-do)
 		# now to make beep, simply run:
 		# system("printf \a")
+	# ---- end check OS ---- #
 
+	# ---- read and parse through file ---- #
 	# the following gathers information from a user-supplied INI file
 	config_file = open("acuitybotconfig.ini")
 	config_file_contents = config_file.read()
@@ -90,9 +96,22 @@ def main():
 	calendarID = config_file_contents.split("calendarID='")[1]	# meanwhile, the 1st index gets stuff after split
 	keyAPI = config_file_contents.split("keyAPI='")[1]
 
-	if config_file_contents.find("numberOfTimes='") != -1:
+	if config_file_contents.find("numberOfTimes='") != -1:	# if optional line found in ini file
 		numberOfTimes = config_file_contents.split("numberOfTimes='")[1]
-		numTimes_already_set = 1
+		numberOfTimes = numberOfTimes.split("'")[0]
+		if numberOfTimes != "":
+			numberOfTimes = int(numberOfTimes)
+			numTimes_already_set = 1
+		else:
+			print "WARNING: numberOfTimes value is present in 'acuitybotconfig.ini' file, but is set to nothing."
+
+	if config_file_contents.find("pullOnce='") != -1:	# if optional line found in ini file
+		pullOnce = config_file_contents.split("pullOnce='")[1]
+		pullOnce = pullOnce.split("'")[0]
+		if pullOnce == 'Y' or pullOnce == 'y':
+			pullOnce = 1				# no need for else seeing as default is 0
+		else:
+			print "WARNING: pullOnce value is present in 'acuitybotconfig.ini' file, but is set to nothing. Setting default to false..."
 
 	del config_file_contents	# no need for it anymore, just taking up space
 
@@ -101,67 +120,73 @@ def main():
 	calendarID = calendarID.split("'")[0]
 	keyAPI = keyAPI.split("'")[0]
 	
-	if numTimes_already_set:
-		numberOfTimes = numberOfTimes.split("'")[0]
-		numberOfTimes = int(numberOfTimes)
-
-	# now that we're done with that, onto the rest of the program
-
-	params = ( ('minDate', 'TODAY'), ('maxDate', 'TODAY'), ('calendarID', calendarID), )
-
-	if numTimes_already_set != 1:
+	if numTimes_already_set == 0:	# if optional line isn't in ini file
 		numberOfTimes = raw_input("Times to play beep (default: 5): ")
 		if numberOfTimes == "":
-			numberOfTimes = "5"			#default is 5
+			numberOfTimes = "5"			#default is 5, put in quotes because it needs to be converted regardless
 		numberOfTimes = int(numberOfTimes)
+	# ---- end file reading and parsing ---- #
 
-	old_len = 0 # used to keep track of amount of appointments
+	params = ( ('minDate', 'TODAY'), ('maxDate', 'TODAY'), ('calendarID', calendarID), ) # for get request
+	
+	print "Calendar ID: {0}".format(calendarID)	
 
-	while 1:
-		something_new = 0
-		appt_cancelled = 0
+	if pullOnce == 1:
+		print "NOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
 
 		response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 		parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
+		printJSON(parsed_json_result)
 
-		if len(parsed_json_result) > old_len and not first_time_running: # something_new doesn't trip on first iterance
-			something_new = 1
+		print "Exiting..."
 
-		if old_len > len(parsed_json_result) and not first_time_running:
-			appt_cancelled = 1
+	else:
+		old_len = 0 # used to keep track of amount of appointments
+		while 1:
+			something_new = 0
+			appt_cancelled = 0
 
-		if not first_time_running:
-			print0("Running", 2)
+			response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
+			parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 
-			if something_new:
-				sleep(0.5)
-				print "\nThere's a new appointment."
-				sleep(0.5)
-				printJSON(parsed_json_result)
-				print0("Playing beep {0} times".format(numberOfTimes), numberOfTimes, 1)
-				sleep(0.3)
-				print "\n=================\n"
-			elif appt_cancelled:	# need to account for whether an appointment has been cancelled (but it only plays half the amount of specified beeps)
-				sleep(0.5)
-				print "\nSomeone cancelled their appointment."
-				sleep(0.5)
-				printJSON(parsed_json_result)
-				print0("Playing beep {0} times".format(numberOfTimes/2), numberOfTimes/2, 1)
-				sleep(0.3)
-				print "\n================\n"
+			if len(parsed_json_result) > old_len and not first_time_running: # something_new doesn't trip on first iterance
+				something_new = 1
+
+			if old_len > len(parsed_json_result) and not first_time_running:
+				appt_cancelled = 1
+
+			if not first_time_running:
+				print0("Running", 2)
+
+				if something_new:
+					sleep(0.5)
+					print "\nThere's a new appointment."
+					sleep(0.5)
+					printJSON(parsed_json_result)
+					print0("Playing beep {0} times".format(numberOfTimes), numberOfTimes, 1)
+					sleep(0.3)
+					print "\n=================\n"
+				elif appt_cancelled:	# need to account for whether an appointment has been cancelled (but it only plays half the amount of specified beeps)
+					sleep(0.5)
+					print "\nSomeone cancelled their appointment."
+					sleep(0.5)
+					printJSON(parsed_json_result)
+					print0("Playing beep {0} times".format(numberOfTimes/2), numberOfTimes/2, 1)
+					sleep(0.3)
+					print "\n================\n"
+				else:
+					sleep(0.5)
+					print "\nNothing new."
+					sleep(0.3)
+					print "\n=================\n"
+
 			else:
-				sleep(0.5)
-				print "\nNothing new."
-				sleep(0.3)
-				print "\n=================\n"
+				first_time_running = 0
+				printJSON(parsed_json_result)
+				print "First time running, will sleep for 5 seconds and check again.\n"
 
-		else:
-			printJSON(parsed_json_result)
-			first_time_running = 0
-			print "First time running, will sleep for 5 seconds and check again.\n"
-
-		print0("Sleeping for 5 seconds", 5) # this plus all the other delays means a refresh happens about every 5-10 seconds
-		old_len = len(parsed_json_result)
+			print0("Sleeping for 5 seconds", 5) # this plus all the other delays means a refresh happens about every 5-10 seconds
+			old_len = len(parsed_json_result)
 
 if __name__ == "__main__":
 	main()
