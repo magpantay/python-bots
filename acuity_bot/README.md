@@ -1,5 +1,5 @@
 # Acuity Bot
-For when you don't want to keep refreshing Acuity Scheduling's website every 5 seconds (exaggerated) to check if there are new appointments set up.
+For when you don't want to keep refreshing Acuity Scheduling's website every few seconds to check if there are new appointments set up/existing appointments cancelled.
 
 ## Features
 - Auto-fetches schedule metadata from Acuity's website every ~10 seconds for the current day only
