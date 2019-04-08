@@ -108,8 +108,9 @@ def main():
 	if config_file_contents.find("pullOnce='") != -1:	# if optional line found in ini file
 		pullOnce = config_file_contents.split("pullOnce='")[1]
 		pullOnce = pullOnce.split("'")[0]
-		if pullOnce == 'Y' or pullOnce == 'y':
-			pullOnce = 1				# no need for else seeing as default is 0
+		if pullOnce != "":
+			if pullOnce == 'Y' or pullOnce == 'y':
+				pullOnce = 1				# no need for else seeing as default is 0
 		else:
 			print "WARNING: pullOnce value is present in 'acuitybotconfig.ini' file, but is set to nothing. Setting default to false..."
 
