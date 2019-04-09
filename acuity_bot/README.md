@@ -23,7 +23,7 @@ The INI file is a configuration file that is required for the program to run.
 - pullOnce: A Y/N value that tells the program whether to run once or not. If Y, the program will only fetch the appointments once then exit. Note: This is an optional value, the program will default to the the value N in the case that this value is missing.
 
 ## Running Acuity Bot
-- Fill out INI configuration file (acuitybotconfig.ini) with API key, the user ID, and the calendar ID you'd like to keep fetching
+- Fill out INI configuration file (acuitybotconfig.ini) with API key and the user ID of the Acuity account.
      - Note: All of these are user-specific. If you need help finding these, there is information on how to on [Acuity's website](https://developers.acuityscheduling.com/v1.1/reference#quick-start).
 - Navigate to the folder where both the config file and the Python script are, and run command: `python acuity_bot.py`
     
