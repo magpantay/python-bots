@@ -73,6 +73,7 @@ def main():
 
 	# The following enables the beep sound for linux
 	if os_id()[0].find("Linux") != -1 and os_id()[2].find("Microsoft") == -1: # is running non-Windows OS/non-Windows Linux
+		print "NOTICE: Non-Windows/Ubuntu-Windows OS detected. Sudo access may be requested for the audio alerts to work [hopefully] properly."
 		from os import system
 		# Beep drivers are removed by default in some linux distros (eg. Ubuntu, but not Bash on Ubuntu on Windows)
 		# To temporarily enable for current session, (until reboot)
