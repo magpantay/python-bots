@@ -4,6 +4,19 @@ from requests import get as web_get 	#requests.get()
 from json import loads as json_parser 	#json.loads()
 from sys import stdout as sysout 	#sys.stdout()
 
+def doesExist(search_term, config_contents): # checks if an option ini file value exists and gets that value
+	ret_0 = ""
+	ret_1 = 0
+
+	if config_contents.find(search_term) != -1:
+		ret_0 = config_contents.split(search_term)[1]
+		ret_0 = ret_0.split("'")[0]
+		if ret_0 != "":
+			ret_1 = 1
+		else:
+			print "WARNING: {0} value present in 'acuitybotconfig.ini' file, but is set to nothing.".format(search_term.split("='")[0])
+	return [ret_0, ret_1]
+
 def print0(text, times, isBeeping = 0):	# prints text, sleeps/makes sounds for amount of times
 	print text,	# comma keeps text inline
 	for i in range(times):
@@ -69,6 +82,7 @@ def main():
 	first_time_running = 1			#acts slightly differently on first run-through
 	numTimes_already_set = 0		#to set default value if not set in ini file
 	pullOnce = 0				#pulls all appointment information only once, doesn't do the automatic refresh thing
+	calendarID_set = 0
 
 	# ---- check OS (since some Linux distros has a different audio handling method) ---- #
 	print "OS Detected as {0} {1}".format(os_id()[0], os_id()[2])
@@ -94,46 +108,62 @@ def main():
 
 	# first remove the preceding part and first single quotation mark
 	userID = config_file_contents.split("userID='")[1]		# the 0th index gets the stuff preceding the split
-	calendarID = config_file_contents.split("calendarID='")[1]	# meanwhile, the 1st index gets stuff after split
-	keyAPI = config_file_contents.split("keyAPI='")[1]
+	keyAPI = config_file_contents.split("keyAPI='")[1]		# meanwhile, the 1st index gets stuff after split
+	userID = userID.split("'")[0]					# then remove the quotation mark on the other end for userID and API key
+	keyAPI = keyAPI.split("'")[0]
 
-	if config_file_contents.find("numberOfTimes='") != -1:	# if optional line found in ini file
-		numberOfTimes = config_file_contents.split("numberOfTimes='")[1]
-		numberOfTimes = numberOfTimes.split("'")[0]
-		if numberOfTimes != "":
-			numberOfTimes = int(numberOfTimes)
-			numTimes_already_set = 1
-		else:
-			print "WARNING: numberOfTimes value is present in 'acuitybotconfig.ini' file, but is set to nothing."
-
-	if config_file_contents.find("pullOnce='") != -1:	# if optional line found in ini file
-		pullOnce = config_file_contents.split("pullOnce='")[1]
-		pullOnce = pullOnce.split("'")[0]
-		if pullOnce != "":
-			if pullOnce == 'Y' or pullOnce == 'y':
-				pullOnce = 1				# no need for else seeing as default is 0
-			else:
-				pullOnce = 0				# needed because pullOnce changed to Y/N in previous lines
-		else:
-			print "WARNING: pullOnce value is present in 'acuitybotconfig.ini' file, but is set to nothing. Setting default to false..."
+	# -- check if optional ini values exist in file -- #
+	calendarID_info = doesExist("calendarID='", config_file_contents)
+	calendarID = calendarID_info[0]
+	calendarID_set = calendarID_info[1]		# even if calendarID_info[0] is value "" (default not found value), calendarID_set will still be false
+	del calendarID_info
+	
+	numTimes_info = doesExist("numberOfTimes='", config_file_contents)
+	numberOfTimes = numTimes_info[0]
+	numTimes_already_set = numTimes_info[1]		# even if numTimes_info[0] is value "" (default not found value), numTimes_already_set will still be false
+	del numTimes_info		# no need for it anymore, just taking up space
+	
+	pullOnce_info = doesExist("pullOnce='", config_file_contents)
+	if pullOnce_info[1]:		# if 1, we know that it's not blank
+		if pullOnce_info[0] == 'Y' or pullOnce_info[0] == 'y':		# checks first return value for Y/y
+			pullOnce = 1
+	del pullOnce_info		# no need for it anymore, just taking up space
+	# no need for an else statement because pullOnce is by default set to false
+	# -- end optional ini value checking -- #
 
 	del config_file_contents	# no need for it anymore, just taking up space
 
-	# then remove the quotation mark on the other end
-	userID = userID.split("'")[0]
-	calendarID = calendarID.split("'")[0]
-	keyAPI = keyAPI.split("'")[0]
-	
 	if not numTimes_already_set:	# if optional line isn't in ini file
 		numberOfTimes = raw_input("Times to play beep (default: 5): ")
 		if numberOfTimes == "":
 			numberOfTimes = "5"			#default is 5, put in quotes because it needs to be converted regardless (since raw_input)
 		numberOfTimes = int(numberOfTimes)
+
+	if not calendarID_set:
+		print "WARNING: Calendar ID is not set. Please select an ID from the following list: "
+		calendarID_list = web_get('https://acuityscheduling.com/api/v1/calendars', auth=(userID, keyAPI))
+
+		if calendarID_list.status_code != 200: # < 200 OK >
+			print "ERROR: Non-OK return status ({0}). Exiting...".format(response)
+			exit()
+
+		calendarID_list = json_parser(calendarID_list.text)
+
+		# below you'll see that some things are offset by 1. I wanted to start at 1 as simple as possible (but it involved offsetting everything else)
+		for i in range(len(calendarID_list)):
+			print "{0}: {1}".format(i+1, calendarID_list[i]["name"])
+
+		calendarID = raw_input("Enter choice: ")
+		if calendarID == "" or int(calendarID) > len(calendarID_list) or int(calendarID) < 1:
+			print "ERROR: Did not enter a valid choice. Exiting..."
+			exit()
+		calendarID = int(calendarID_list[int(calendarID)-1]["id"])
+
 	# ---- end file reading and parsing ---- #
 
 	params = ( ('minDate', 'TODAY'), ('maxDate', 'TODAY'), ('calendarID', calendarID), ) # for get request
 	
-	print "Calendar ID: {0}\n".format(calendarID)	
+	print "\nCalendar ID: {0}\n".format(calendarID)	
 
 	if pullOnce:
 		print "\nNOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
