@@ -16,6 +16,8 @@ def print0(text, times, isBeeping = 0):	# prints text, sleeps/makes sounds for a
 				sysout.write("\a")
 				sysout.flush()
 			sleep(1.25)
+		sysout.write('') # needed to print text first while waiting for "- done" in Linux, doesn't really do anything in Windows
+		sysout.flush()	 # same as above
 	print " - done."
 
 def printJSON(parsed_json_result): # prints specific details of parsed JSON text
@@ -137,6 +139,8 @@ def main():
 		print "\nNOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
 
 		print "\nGetting data from Acuity",
+		sysout.write('') # needed to print text first while waiting for "- done" in Linux, doesn't really do anything in Windows
+		sysout.flush()	 # same as above
 
 		response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 		
@@ -158,6 +162,8 @@ def main():
 			appt_cancelled = 0
 
 			print "Getting data from Acuity", # commas keep text inline
+			sysout.write('') # needed to print text first while waiting for "- done" in Linux, doesn't really do anything in Windows
+			sysout.flush()	 # same as above
 
 			response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 			
