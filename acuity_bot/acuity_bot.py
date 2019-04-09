@@ -4,23 +4,21 @@ from requests import get as web_get 	#requests.get()
 from json import loads as json_parser 	#json.loads()
 from sys import stdout as sysout 	#sys.stdout()
 
-def print0(text, times, isBeeping = 0):
-	print text,	# comma helps with keeping print inline
+def print0(text, times, isBeeping = 0):	# prints text, sleeps/makes sounds for amount of times
+	print text,	# comma keeps text inline
 	for i in range(times):
 		if not isBeeping:
 			sleep(1)
 		else:
 			if os_id()[0].find("Linux") != -1 and os_id()[2].find("Microsoft") == -1: # beep on linux
 				system("printf \a")
-			else: 											    # beep on windows
+			else: 									  # beep on windows
 				sysout.write("\a")
 				sysout.flush()
 			sleep(1.25)
-		sysout.write('') # keeps text - done inline
-		sysout.flush()
 	print " - done."
 
-def printJSON(parsed_json_result):
+def printJSON(parsed_json_result): # prints specific details of parsed JSON text
 	count = 1 # used for the list numbering
 	print "============================================================BEGIN=============================================================\n"
 	for each_result in parsed_json_result:
@@ -111,6 +109,8 @@ def main():
 		if pullOnce != "":
 			if pullOnce == 'Y' or pullOnce == 'y':
 				pullOnce = 1				# no need for else seeing as default is 0
+			else:
+				pullOnce = 0				# needed because pullOnce changed to Y/N in previous lines
 		else:
 			print "WARNING: pullOnce value is present in 'acuitybotconfig.ini' file, but is set to nothing. Setting default to false..."
 
@@ -130,13 +130,21 @@ def main():
 
 	params = ( ('minDate', 'TODAY'), ('maxDate', 'TODAY'), ('calendarID', calendarID), ) # for get request
 	
-	print "Calendar ID: {0}".format(calendarID)	
+	print "Calendar ID: {0}\n".format(calendarID)	
 
 	if pullOnce:
 		print "\nNOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
 
-		print "\nGetting data from Acuity..."
+		print "\nGetting data from Acuity",
+
 		response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
+		
+		print " - done"
+
+		if response.status_code != 200: # <200 OK>
+			print "ERROR: Non-OK return status ({0}). Exiting...".format(response)
+			exit()
+
 		parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 		printJSON(parsed_json_result)
 
@@ -148,9 +156,16 @@ def main():
 			something_new = 0
 			appt_cancelled = 0
 
-			if first_time_running:
-				print "\nGetting data from Acuity..."
+			print "Getting data from Acuity", # commas keep text inline
+
 			response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
+			
+			print " - done"
+			
+			if response.status_code != 200: # <200 OK>
+				print "ERROR: Non-OK return status ({0}). Exiting...".format(response)
+				exit()
+
 			parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 
 			if len(parsed_json_result) > old_len and not first_time_running: # something_new doesn't trip on first iterance
@@ -160,34 +175,26 @@ def main():
 				appt_cancelled = 1
 
 			if not first_time_running:
-				print0("Running", 2)
-
 				if something_new:
-					sleep(0.5)
+					sleep(0.5)	# just a slight delay
 					print "\nThere's a new appointment."
-					sleep(0.5)
 					printJSON(parsed_json_result)
 					print0("Playing beep {0} times".format(numberOfTimes), numberOfTimes, 1)
-					sleep(0.3)
 					print "\n=================\n"
 				elif appt_cancelled:	# need to account for whether an appointment has been cancelled (but it only plays half the amount of specified beeps)
-					sleep(0.5)
+					sleep(0.5)	# just a slight delay
 					print "\nSomeone cancelled their appointment."
-					sleep(0.5)
 					printJSON(parsed_json_result)
 					print0("Playing beep {0} times".format(numberOfTimes/2), numberOfTimes/2, 1)
-					sleep(0.3)
 					print "\n================\n"
 				else:
-					sleep(0.5)
+					sleep(0.5)	# just a slight delay
 					print "\nNothing new."
-					sleep(0.3)
 					print "\n=================\n"
 
 			else:
 				first_time_running = 0
 				printJSON(parsed_json_result)
-				print "First time running, will sleep for 5 seconds and check again.\n"
 
 			print0("Sleeping for 5 seconds", 5) # this plus all the other delays means a refresh happens about every 5-10 seconds
 			old_len = len(parsed_json_result)
