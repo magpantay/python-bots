@@ -16,9 +16,9 @@ You need the following:
 
 ## INI Config File
 The INI file is a configuration file that is required for the program to run.
-- calendarID: The ID of the calendar that you are trying to fetch off of Acuity. Usually a numerical value.
 - userID: The login information given in the [Acuity website](https://developers.acuityscheduling.com/v1.1/reference#quick-start). Note: This is NOT the same as your Acuity login username/e-mail.
 - keyAPI: The secret API key (basically a password) given in the [Acuity website](https://developers.acuityscheduling.com/v1.1/reference#quick-start). Note: This is NOT the same as your Acuity login password.
+- calendarID: The ID of the calendar that you are trying to fetch off of Acuity. Note: This is an optional value, the program will print a list of all calendars and prompt user to select a calendar from list if this value is missing.
 - numberOfTimes: A numerical value that tells the program the amount of times you want a sound to play upon a new appointment being fetched. Note: This is an optional value, the program will prompt you in the case this line is missing/will default to a value of 5. Also, the amount of times the sound is played is halved (rounded down) in the case of an appointment cancellation to try to differentiate between the different appointment changes.
 - pullOnce: A Y/N value that tells the program whether to run once or not. If Y, the program will only fetch the appointments once then exit. Note: This is an optional value, the program will default to the the value N in the case that this value is missing.
 
