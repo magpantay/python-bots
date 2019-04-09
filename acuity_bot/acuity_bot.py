@@ -5,19 +5,19 @@ from json import loads as json_parser 	#json.loads()
 from sys import stdout as sysout 	#sys.stdout()
 
 def print0(text, times, isBeeping = 0):
-	print text,
+	print text,	# comma helps with keeping print inline
 	for i in range(times):
-		if isBeeping == 0:
+		if not isBeeping:
 			sleep(1)
-		sysout.write('') # keeps text - done inline
-		sysout.flush()
-		if isBeeping == 1:
+		else:
 			if os_id()[0].find("Linux") != -1 and os_id()[2].find("Microsoft") == -1: # beep on linux
 				system("printf \a")
 			else: 											    # beep on windows
 				sysout.write("\a")
 				sysout.flush()
 			sleep(1.25)
+		sysout.write('') # keeps text - done inline
+		sysout.flush()
 	print " - done."
 
 def printJSON(parsed_json_result):
@@ -121,10 +121,10 @@ def main():
 	calendarID = calendarID.split("'")[0]
 	keyAPI = keyAPI.split("'")[0]
 	
-	if numTimes_already_set == 0:	# if optional line isn't in ini file
+	if not numTimes_already_set:	# if optional line isn't in ini file
 		numberOfTimes = raw_input("Times to play beep (default: 5): ")
 		if numberOfTimes == "":
-			numberOfTimes = "5"			#default is 5, put in quotes because it needs to be converted regardless
+			numberOfTimes = "5"			#default is 5, put in quotes because it needs to be converted regardless (since raw_input)
 		numberOfTimes = int(numberOfTimes)
 	# ---- end file reading and parsing ---- #
 
@@ -132,21 +132,24 @@ def main():
 	
 	print "Calendar ID: {0}".format(calendarID)	
 
-	if pullOnce == 1:
-		print "NOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
+	if pullOnce:
+		print "\nNOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
 
+		print "\nGetting data from Acuity..."
 		response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 		parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 		printJSON(parsed_json_result)
 
 		print "Exiting..."
-
+		exit()
 	else:
 		old_len = 0 # used to keep track of amount of appointments
 		while 1:
 			something_new = 0
 			appt_cancelled = 0
 
+			if first_time_running:
+				print "\nGetting data from Acuity..."
 			response = web_get('https://acuityscheduling.com/api/v1/appointments', params=params, auth=(userID, keyAPI))
 			parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
 
