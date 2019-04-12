@@ -3,6 +3,7 @@ For when you don't want to keep refreshing Acuity Scheduling's website every few
 
 ## Features
 - Auto-fetches schedule metadata from Acuity's website every ~10 seconds for the current day only
+    - Also has a one-time fetch mode for if you just want to take a glance at your schedule
 - Alerts the user whether either a new appointment is scheduled or an appointment cancelled
 
 ## Preinstallation Requirements
