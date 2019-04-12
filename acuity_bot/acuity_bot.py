@@ -1,8 +1,9 @@
-from platform import uname as os_id	#platform.uname()
-from time import sleep 			#time.sleep()
-from requests import get as web_get 	#requests.get()
-from json import loads as json_parser 	#json.loads()
-from sys import stdout as sysout 	#sys.stdout()
+from platform import uname as os_id	#platform.uname(), for OS checking
+from time import sleep 			#time.sleep(), for sleeping
+from requests import get as web_get 	#requests.get(), for CURL requests
+from json import loads as json_parser 	#json.loads(), for parsing CURL response
+from sys import stdout as sysout 	#sys.stdout(), for specialty printing
+from datetime import datetime as clock  #datetime.datetime, for current time
 
 def doesExist(search_term, config_contents): # checks if an option ini file value exists and gets that value
 	ret_0 = ""
@@ -33,10 +34,18 @@ def print0(text, times, isBeeping = 0):	# prints text, sleeps/makes sounds for a
 		sysout.flush()	 # same as above
 	print " - done."
 
-def printJSON(parsed_json_result): # prints specific details of parsed JSON text
+def printJSON(parsed_json_result, firstTimeRunning=0): # prints specific details of parsed JSON text
 	count = 1 # used for the list numbering
 	print "============================================================BEGIN=============================================================\n"
 	for each_result in parsed_json_result:
+		if firstTimeRunning:
+			endTimeH = int(each_result['endTime'].split(":")[0])			# taking the endTime (hour) from Acuity and converting to int
+			if each_result['endTime'].split(":")[1].split("m")[0][2] == "p":	# datetime displays in 24H, so convert Acuity's output to 24H
+				endTimeH = endTimeH + 12
+			if clock.now().time().hour > endTimeH:
+				continue		# skip since the meeting is over already
+			elif clock.now().time().hour == endTimeH and clock.now().time().minute > int(each_result['endTime'].split(":")[1][0:2]):	# taking the endTime (minute)
+				continue
 
 		# Normal general print-out #
 		print "--------------"
@@ -166,7 +175,7 @@ def main():
 	print "\nCalendar ID: {0}\n".format(calendarID)	
 
 	if pullOnce:
-		print "\nNOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
+		print "NOTICE: Pull once enabled. Will only pull current appointments once, auto-refresh disabled."
 
 		print "\nGetting data from Acuity",
 		sysout.write('') # needed to print text first while waiting for "- done" in Linux, doesn't really do anything in Windows
@@ -181,7 +190,7 @@ def main():
 			exit()
 
 		parsed_json_result = json_parser(response.text)	#must be response.text because reponse just prints the code (i.e., 200 OK or 403 FORBIDDEN, etc.), # type dictionary
-		printJSON(parsed_json_result)
+		printJSON(parsed_json_result, 1)	# technically is the first time running
 
 		print "Exiting..."
 		exit()
@@ -231,7 +240,7 @@ def main():
 
 			else:
 				first_time_running = 0
-				printJSON(parsed_json_result)
+				printJSON(parsed_json_result, 1)
 
 			print0("Sleeping for 5 seconds", 5) # this plus all the other delays means a refresh happens about every 5-10 seconds
 			old_len = len(parsed_json_result)
