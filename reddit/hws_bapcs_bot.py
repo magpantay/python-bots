@@ -104,10 +104,10 @@ def main():
 
 	if is_hws:
 		bot = praw.Reddit(
-		    'bot1', user_agent='HWS/BAPCS Bot v2.1 [Mode: HWS]', site_name='hws_bot')
+		    'BOT_NAME_FROM_PRAW_INI_FILE', user_agent='HWS/BAPCS Bot v2.1 [Mode: HWS]')
 	else:
 		bot = praw.Reddit(
-		    'bot2', user_agent='HWS/BAPCS Bot v2.1 [Mode: BAPCS]', site_name='bapcs_bot')
+		    'BOT_NAME_FROM_PRAW_INI_FILE', user_agent='HWS/BAPCS Bot v2.1 [Mode: BAPCS]')
 
 	if is_hws:
 		subreddit = bot.subreddit('hardwareswap')
